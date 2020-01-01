@@ -6,37 +6,11 @@ async function sleep(milliseconds) {
   })
 }
 
-function initProgressTracker(upperBound) {
-  return {
-    success: 0,
-    failure: 0,
-    upperBound: upperBound,
-    incrementSuccess: function () {
-      this.success++;
-    },
-    incrementFailure: function() {
-      this.failure++;
-    },
-    summarize: function() {
-      console.log(`success: ${this.success}`)
-      console.log(`failure: ${this.failure}`)
-      console.log(`progress: ${this.success+this.failure} / ${this.upperBound}`)
-    },
-  }
-}
-
-// callbacks:
-// onSuccess
-// onFailure
-// onRetry
-// onBatchStart
-// onBatchEnd
-
-async function executeSingleItem(callback, retryFilters, progressTracker, { func, id }) {
+async function executeSingleItem(retryFilters, callbacks, { func, args }) {
+  const { onSuccess, onFailure, onRetry, ignoreFailures } = callbacks;
   try {
-    const result = await func()
-    await callback(result)
-    progressTracker.incrementSuccess()
+    const result = await func(...args)
+    await onSuccess(result)
     return {
       shouldRetry: false,
       value: result,
@@ -44,28 +18,35 @@ async function executeSingleItem(callback, retryFilters, progressTracker, { func
   } catch (err) {
     var shouldRetry = false;
     for (i = 0; i < retryFilters.length; i++) {
-
-      console.log('lll')
-      console.log(func)
-      console.log(err)
-
       if (retryFilters[i](err)) {
         shouldRetry = true;
         break;
       }
     }
     if (shouldRetry) {
-      console.log(`retrying one item...`)
+      await onRetry(args)
       return {
         shouldRetry: true,
-        value: { func, id },
+        value: { func, args },
       }
     } else {
-      progressTracker.incrementFailure()
-      console.error('Failure detected.')
-      console.error(`message: ${err.message}`)
-      console.error(`id: ${id}`)
-      console.error(`Not retrying.`)
+      // handling failures is a special case. without this, code fails silently
+      // without the user realising it.
+      if (onFailure) {
+        // user knows enough to add an onFailure handler
+        await onFailure(args, err);
+      } else if (ignoreFailures) {
+        // user knows enough to specify that they wish to ignore failures
+        // do nothing
+      } else if (!ignoreFailures && !onFailure) {
+        // user does not ignore failure, but also does not have a handler present
+        // default safeguard condition
+        console.error('One of your promises has failed. Normally this is handled by the onFailure error handler, but this is not defined in your code.')
+        console.error('Either')
+        console.error('(1) define an onFailure handler in options to handle all failures, or')
+        console.error('(2) set ignoreFailures: true in options to skip errors (not recommended).')
+        throw err;
+      }
       return {
         shouldRetry: false,
         value: null,
@@ -74,7 +55,7 @@ async function executeSingleItem(callback, retryFilters, progressTracker, { func
   }
 }
 
-module.exports = async (queuedPromises, callback, options) => {
+module.exports = async (queuedPromises, options) => {
   // put all promises into a queue,
   // execute N number at a time, every S seconds,
   // put failed ones into the back of the queue
@@ -82,15 +63,30 @@ module.exports = async (queuedPromises, callback, options) => {
     batchSize = 1,
     delayBetweenBatches = 1,
     retryFilters = [],
+    ignoreFailures = false,
+    onSuccess = () => {},
+    onFailure = null,
+    onRetry = () => {},
+    onBatchStart = () => {},
+    onBatchEnd = () => {},
     // strategy = 'naive', // naive / indexed
   } = options || {};
-  const progressTracker = initProgressTracker(queuedPromises.length)
+
+  const callbacks = {
+    onSuccess,
+    onFailure,
+    onRetry,
+    onBatchStart,
+    onBatchEnd,
+    ignoreFailures,
+  }
 
   while (queuedPromises.length) {
+    await onBatchStart()
     const currBatch = queuedPromises.splice(0, batchSize);
     const results = await Promise.all(
       currBatch.map(
-        executeSingleItem.bind(null, callback, retryFilters, progressTracker)
+        executeSingleItem.bind(null, retryFilters, callbacks)
       )
     )
     results.forEach(result => {
@@ -98,12 +94,10 @@ module.exports = async (queuedPromises, callback, options) => {
         queuedPromises.push(result['value'])
       }
     })
+    await onBatchEnd()
     if (queuedPromises.length <= 0) {
       break;
     }
-
-    console.log(`Batch summary`)
-    progressTracker.summarize()
     await sleep(delayBetweenBatches)
   }
   return true
