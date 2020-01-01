@@ -19,6 +19,7 @@
   ],
   "devDependencies": {
     "git-hooks": "^1.1.10",
+    "githooks": "^1.1.1",
     "mocha": "^5.2.0",
     "pre-commit": "^1.2.2",
     "sinon": "^7.2.3"
