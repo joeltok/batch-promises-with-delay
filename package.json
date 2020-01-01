@@ -1,0 +1,11 @@
+{
+  "name": "batch-promises-with-retry",
+  "version": "1.0.0",
+  "description": "Promise batching for unreliable api calls that have rate limits",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "author": "joeltok",
+  "license": "ISC"
+}
