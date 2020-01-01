@@ -10,7 +10,7 @@ async function executeSingleItem(retryFilters, callbacks, greedyRetry, { func, a
   const { onSuccess, onFailure, onRetry, ignoreFailures } = callbacks;
   try {
     const result = await func(...args)
-    await onSuccess(result)
+    await onSuccess(args, result)
     return {
       shouldRetry: false,
       value: result,
