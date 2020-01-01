@@ -25,7 +25,14 @@ function initProgressTracker(upperBound) {
   }
 }
 
-async function executeSingleItem(callback, errorRetryFilters, progressTracker, { func, id }) {
+// callbacks:
+// onSuccess
+// onFailure
+// onRetry
+// onBatchStart
+// onBatchEnd
+
+async function executeSingleItem(callback, retryFilters, progressTracker, { func, id }) {
   try {
     const result = await func()
     await callback(result)
@@ -36,8 +43,13 @@ async function executeSingleItem(callback, errorRetryFilters, progressTracker, {
     }
   } catch (err) {
     var shouldRetry = false;
-    for (i = 0; i < errorRetryFilters.length; i++) {
-      if (errorRetryFilters[i](err)) {
+    for (i = 0; i < retryFilters.length; i++) {
+
+      console.log('lll')
+      console.log(func)
+      console.log(err)
+
+      if (retryFilters[i](err)) {
         shouldRetry = true;
         break;
       }
@@ -46,7 +58,7 @@ async function executeSingleItem(callback, errorRetryFilters, progressTracker, {
       console.log(`retrying one item...`)
       return {
         shouldRetry: true,
-        value: func,
+        value: { func, id },
       }
     } else {
       progressTracker.incrementFailure()
@@ -62,23 +74,23 @@ async function executeSingleItem(callback, errorRetryFilters, progressTracker, {
   }
 }
 
-module.exports = async function executeQueuedBatches(queuedPromises, callback, options) {
+module.exports = async (queuedPromises, callback, options) => {
   // put all promises into a queue,
   // execute N number at a time, every S seconds,
   // put failed ones into the back of the queue
   const {
-    batchSize = 10,
-    delayBetweenBatches = 1000,
-    errorRetryFilters = [],
+    batchSize = 1,
+    delayBetweenBatches = 1,
+    retryFilters = [],
     // strategy = 'naive', // naive / indexed
-  } = options;
+  } = options || {};
   const progressTracker = initProgressTracker(queuedPromises.length)
 
   while (queuedPromises.length) {
     const currBatch = queuedPromises.splice(0, batchSize);
     const results = await Promise.all(
       currBatch.map(
-        executeSingleItem.bind(null, callback, errorRetryFilters, progressTracker)
+        executeSingleItem.bind(null, callback, retryFilters, progressTracker)
       )
     )
     results.forEach(result => {
@@ -94,4 +106,5 @@ module.exports = async function executeQueuedBatches(queuedPromises, callback, o
     progressTracker.summarize()
     await sleep(delayBetweenBatches)
   }
+  return true
 }
