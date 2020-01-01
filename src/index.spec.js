@@ -2,7 +2,7 @@ const assert = require('assert');
 const sinon = require('sinon');
 const sandbox = sinon.createSandbox();
 
-const batchPromisesWithDelay = require('./index.js');
+const batchPromisesWithRetry = require('./index.js');
 
 describe('index.spec.js', function () {
   var successCount = 0;
@@ -61,7 +61,7 @@ describe('index.spec.js', function () {
       successPromise,
     ];
 
-    await batchPromisesWithDelay(promises)
+    await batchPromisesWithRetry(promises)
     assert.equal(successCount, 3)
     assert.equal(retryCount,   0)
     assert.equal(failureCount, 0)
@@ -73,7 +73,7 @@ describe('index.spec.js', function () {
       failurePromise,
       failurePromise,
     ];
-    await batchPromisesWithDelay(promises, { ignoreFailures: true })
+    await batchPromisesWithRetry(promises, { ignoreFailures: true })
     assert.equal(successCount, 0)
     assert.equal(failureCount, 3)
     assert.equal(retryCount,   0)
@@ -87,7 +87,7 @@ describe('index.spec.js', function () {
     ];
     var hasError = false
     try {
-      await batchPromisesWithDelay(promises)
+      await batchPromisesWithRetry(promises)
     } catch (err) {
 
       console.log(err.message)
@@ -106,7 +106,7 @@ describe('index.spec.js', function () {
       retryPromiseGenerator(1),
     ]
 
-    await batchPromisesWithDelay(promises, { retryFilters })
+    await batchPromisesWithRetry(promises, { retryFilters })
     assert.equal(successCount, 3)
     assert.equal(failureCount, 0)
     assert.equal(retryCount,   5)
@@ -125,7 +125,7 @@ describe('index.spec.js', function () {
       (err) => err.message == 'retry value',
     ]
 
-    await batchPromisesWithDelay(promises, { retryFilters, ignoreFailures: true })
+    await batchPromisesWithRetry(promises, { retryFilters, ignoreFailures: true })
     assert.equal(successCount, 3)
     assert.equal(failureCount, 2)
     assert.equal(retryCount,   8)
@@ -143,7 +143,7 @@ describe('index.spec.js', function () {
       delayBetweenBatches: 10,
     }
 
-    await batchPromisesWithDelay(promises, options)
+    await batchPromisesWithRetry(promises, options)
     assert.equal(successCount, 3)
     assert.equal(retryCount,   0)
     assert.equal(failureCount, 0)
@@ -164,7 +164,7 @@ describe('index.spec.js', function () {
       return true;
     }
 
-    await batchPromisesWithDelay(promises, { onSuccess, ignoreFailures: true })
+    await batchPromisesWithRetry(promises, { onSuccess, ignoreFailures: true })
     assert.equal(successCount,   2)
     assert.equal(retryCount,     0)
     assert.equal(failureCount,   1)
@@ -186,7 +186,7 @@ describe('index.spec.js', function () {
       return true;
     }
 
-    await batchPromisesWithDelay(promises, { onFailure })
+    await batchPromisesWithRetry(promises, { onFailure })
     assert.equal(successCount,   1)
     assert.equal(retryCount,     0)
     assert.equal(failureCount,   2)
@@ -207,7 +207,7 @@ describe('index.spec.js', function () {
       return true;
     }
 
-    await batchPromisesWithDelay(promises, { onRetry, retryFilters, ignoreFailures: true })
+    await batchPromisesWithRetry(promises, { onRetry, retryFilters, ignoreFailures: true })
     assert.equal(successCount,   2)
     assert.equal(retryCount,     4)
     assert.equal(failureCount,   1)
@@ -238,7 +238,7 @@ describe('index.spec.js', function () {
 
     const batchSize = 2
 
-    await batchPromisesWithDelay(promises, { batchSize, retryFilters, onBatchStart, onBatchEnd })
+    await batchPromisesWithRetry(promises, { batchSize, retryFilters, onBatchStart, onBatchEnd })
     assert.equal(successCount,   6)
     assert.equal(retryCount,     3)
     assert.equal(failureCount,   0)
@@ -260,7 +260,7 @@ describe('index.spec.js', function () {
       return true;
     }
 
-    await batchPromisesWithDelay(promises, { onRetry, greedyRetry: true, ignoreFailures: true })
+    await batchPromisesWithRetry(promises, { onRetry, greedyRetry: true, ignoreFailures: true })
     assert.equal(successCount,   3)
     assert.equal(retryCount,     4)
     assert.equal(failureCount,   0)
