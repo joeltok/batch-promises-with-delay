@@ -4,12 +4,19 @@
   "description": "Promise batching for unreliable api calls that have rate limits",
   "main": "src/index.js",
   "scripts": {
-    "test": "mocha './**/*.spec.js'",
+    "test": "mocha './**/*.spec.js' --exit",
     "pre-commit": "npm test",
     "prepublish": "npm run test"
   },
   "author": "joeltok",
   "license": "MIT",
+  "keywords": [
+    "promise",
+    "batch",
+    "delay",
+    "retry",
+    "retries"
+  ],
   "devDependencies": {
     "git-hooks": "^1.1.10",
     "mocha": "^5.2.0",

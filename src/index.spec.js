@@ -246,5 +246,24 @@ describe('index.spec.js', function () {
     assert.equal(onBatchEndCount, 6)
   })
 
-  it('test useRetryFilters options')
+  it('test useRetryFilters options', async () => {
+    const promises = [
+      retryPromiseGenerator(1),
+      retryPromiseGenerator(3),
+      successPromise,
+    ];
+
+    var onRetryCount = 0;
+    const onRetry = async (args) => {
+      onRetryCount++;
+      assert.equal(args[0], 'successful value')
+      return true;
+    }
+
+    await batchPromisesWithRetry(promises, { onRetry, greedyRetry: true, ignoreFailures: true })
+    assert.equal(successCount,   3)
+    assert.equal(retryCount,     4)
+    assert.equal(failureCount,   0)
+    assert.equal(onRetryCount,   4)
+  })
 })

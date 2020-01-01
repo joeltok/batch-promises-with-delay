@@ -6,7 +6,7 @@ async function sleep(milliseconds) {
   })
 }
 
-async function executeSingleItem(retryFilters, callbacks, { func, args }) {
+async function executeSingleItem(retryFilters, callbacks, greedyRetry, { func, args }) {
   const { onSuccess, onFailure, onRetry, ignoreFailures } = callbacks;
   try {
     const result = await func(...args)
@@ -23,7 +23,7 @@ async function executeSingleItem(retryFilters, callbacks, { func, args }) {
         break;
       }
     }
-    if (shouldRetry) {
+    if (greedyRetry || shouldRetry) {
       await onRetry(args)
       return {
         shouldRetry: true,
@@ -63,6 +63,7 @@ module.exports = async (queuedPromises, options) => {
     batchSize = 1,
     delayBetweenBatches = 1,
     retryFilters = [],
+    greedyRetry = false,
     ignoreFailures = false,
     onSuccess = () => {},
     onFailure = null,
@@ -86,7 +87,7 @@ module.exports = async (queuedPromises, options) => {
     const currBatch = queuedPromises.splice(0, batchSize);
     const results = await Promise.all(
       currBatch.map(
-        executeSingleItem.bind(null, retryFilters, callbacks)
+        executeSingleItem.bind(null, retryFilters, callbacks, greedyRetry)
       )
     )
     results.forEach(result => {
@@ -100,5 +101,5 @@ module.exports = async (queuedPromises, options) => {
     }
     await sleep(delayBetweenBatches)
   }
-  return true
+  return true;
 }
