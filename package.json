@@ -23,5 +23,9 @@
     "mocha": "^5.2.0",
     "pre-commit": "^1.2.2",
     "sinon": "^7.2.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/joeltok/batch-promises-with-delay"
   }
 }
