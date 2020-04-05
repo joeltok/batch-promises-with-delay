@@ -23,11 +23,17 @@ const batchPromisesWithDelay = require('batch-promises-with-delay')
 
 const promises = [
   {
-    func: async (a, b) => { /* some api call */ },
+    func: async (a, b) => {
+      /* some api call */
+      /* some database save call */
+    },
     args: ['A', 'B'],
   },
   {
-    func: async (c, d) => { /* some api call */ },
+    func: async (c, d) => {
+      /* some api call */
+      /* some database save call */
+    },
     args: ['C', 'D'],
   },
 ]
