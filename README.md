@@ -21,14 +21,18 @@ yarn add batch-promises-with-delay
 
 const batchPromisesWithDelay = require('batch-promises-with-delay')
 
-const promises = [1,2,3,4,5,6,7,8,9,10].map((i) => {
-  return {
-    func: async (number, constant) => { console.log(number, constant) },
-    args: [i, 'a'],
-  }
-})
+const promises = [
+  {
+    func: async (a, b) => { /* some api call */ },
+    args: ['A', 'B'],
+  },
+  {
+    func: async (c, d) => { /* some api call */ },
+    args: ['C', 'D'],
+  },
+]
 
-const options {
+const options = {
   batchSize: 3,
   delayBetweenBatches: 1000, // in ms
 }
