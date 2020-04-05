@@ -1,6 +1,6 @@
 {
   "name": "batch-promises-with-delay",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Promise batching for unreliable api calls that have rate limits",
   "main": "src/index.js",
   "scripts": {
